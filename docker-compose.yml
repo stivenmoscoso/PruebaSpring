@@ -1,38 +1,28 @@
-version: '3.8'
-
 services:
-  # Servicio de la Base de Datos (Ejemplo con PostgreSQL)
-  postgres_db:
-    image: postgres:15-alpine
-    container_name: backend_db
-    restart: always
+  postgresdb:
+    image: postgres:14
+    container_name: talentboard-postgres
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret_password}
-      POSTGRES_DB: ${DB_NAME:-mi_base_de_datos}
+      POSTGRES_DB: talentboard_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: securepassword123
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
-  # Servicio del Backend
-  backend_app:
-    build:
-      context: ./backend # Ruta a la carpeta donde está tu Dockerfile
-      dockerfile: Dockerfile
-    container_name: backend_api
-    restart: always
+  springbootapp:
+    build: .
+    container_name: talentboard-api
     ports:
-      - "3000:3000"
-    environment:
-      - DB_HOST=postgres_db
-      - DB_PORT=5432
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-secret_password}
-      - DB_NAME=${DB_NAME:-mi_base_de_datos}
-      - JWT_SECRET=${JWT_SECRET} # Tu capa de seguridad
+      - "8080:8080"
     depends_on:
-      - postgres_db
+      - postgresdb
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgresdb:5432/talentboard_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: securepassword123
+      APP_JWT_SECRET: MiClaveSuperSecretaYSeguraParaTalentBoard2026!
 
 volumes:
-  postgres_data: # Permite que los datos de la BD no se borren al apagar el contenedor
+  pgdata:
