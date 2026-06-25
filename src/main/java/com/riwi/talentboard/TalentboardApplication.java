@@ -1,0 +1,13 @@
+package com.riwi.talentboard;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class TalentboardApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(TalentboardApplication.class, args);
+	}
+
+}
