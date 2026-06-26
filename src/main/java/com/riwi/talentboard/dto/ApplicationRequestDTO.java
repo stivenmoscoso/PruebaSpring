@@ -7,7 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationRequestDTO {
-    @NotNull(message = "Candidate ID is required.")
     private Long candidateId;
 
     @NotNull(message = "Vacancy ID is required.")

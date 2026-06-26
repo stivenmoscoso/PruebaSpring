@@ -6,7 +6,9 @@ import java.util.List;
 
 public interface InterviewService {
     InterviewResponseDTO schedule(InterviewRequestDTO request);
+    List<InterviewResponseDTO> getAll();
     List<InterviewResponseDTO> getByApplicationId(Long applicationId);
+    List<InterviewResponseDTO> getByCandidateId(Long candidateId);
     InterviewResponseDTO getById(Long id);
     InterviewResponseDTO updateResult(Long id, String result, String notes);
 }

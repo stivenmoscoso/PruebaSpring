@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface ApplicationService {
     ApplicationResponseDTO apply(ApplicationRequestDTO request);
+    List<ApplicationResponseDTO> getAll();
     ApplicationResponseDTO getById(Long id);
     List<ApplicationResponseDTO> getByCandidateId(Long candidateId);
     ApplicationResponseDTO changeStatus(Long id, ApplicationStatus status);

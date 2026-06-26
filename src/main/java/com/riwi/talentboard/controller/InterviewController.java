@@ -26,6 +26,11 @@ public class InterviewController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @GetMapping
+    public ResponseEntity<List<InterviewResponseDTO>> getAllInterviews() {
+        return ResponseEntity.ok(interviewService.getAll());
+    }
+
     // Obtener detalle de una entrevista específica
     @GetMapping("/{id}")
     public ResponseEntity<InterviewResponseDTO> getInterviewById(@PathVariable Long id) {
@@ -36,6 +41,11 @@ public class InterviewController {
     @GetMapping("/application/{applicationId}")
     public ResponseEntity<List<InterviewResponseDTO>> getInterviewsByApplication(@PathVariable Long applicationId) {
         return ResponseEntity.ok(interviewService.getByApplicationId(applicationId));
+    }
+
+    @GetMapping("/candidate/{candidateId}")
+    public ResponseEntity<List<InterviewResponseDTO>> getInterviewsByCandidate(@PathVariable Long candidateId) {
+        return ResponseEntity.ok(interviewService.getByCandidateId(candidateId));
     }
 
     // Registrar el resultado y feedback de la entrevista una vez finalizada

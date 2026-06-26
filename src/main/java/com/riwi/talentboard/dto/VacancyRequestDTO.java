@@ -2,7 +2,6 @@ package com.riwi.talentboard.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.*;
-import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +23,5 @@ public class VacancyRequestDTO {
     @Positive(message = "Salary must be a positive number.")
     private Double salary;
 
-    @NotNull(message = "Responsible user ID is required.")
     private Long responsibleUserId;
 }

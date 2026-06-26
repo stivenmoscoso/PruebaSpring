@@ -1,148 +1,1194 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TalentBoard - Thymeleaf Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <meta name="description" content="TalentBoard - Sistema de Gestión de Vacantes y Selección de Talentos">
+    <title>TalentBoard - Gestión de Talentos</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --color-primary: #3b82f6;
+            --color-success: #10b981;
+            --color-danger: #ef4444;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .badge-open { @apply bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .badge-closed { @apply bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .badge-applied { @apply bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .badge-in-review { @apply bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .badge-interview { @apply bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .badge-accepted { @apply bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .badge-rejected { @apply bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold; }
+        .modal-hidden { display: none; }
+        .modal-visible { display: flex; }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: #ffffff;
+            color: #000000;
+        }
+        .form-input::placeholder { color: #6b7280; }
+        .form-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        .btn-primary { @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold; }
+        .btn-danger { @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans antialiased">
-
-<nav class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center shadow-lg">
-    <div class="flex items-center space-x-3">
-        <div class="bg-indigo-600 p-2 rounded-lg text-white font-black text-xl tracking-wider">TB</div>
-        <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">TalentBoard</h1>
-    </div>
-    <div class="flex items-center space-x-4">
-            <span class="text-sm bg-slate-700 px-3 py-1 rounded-full text-indigo-300 font-medium border border-indigo-500/30">
-                <i class="fa-solid fa-server mr-1"></i> Servido por Thymeleaf
-            </span>
-    </div>
-</nav>
-
-<main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-    <section class="bg-slate-800 p-6 rounded-2xl border border-slate-700/60 shadow-xl h-fit">
-        <div class="flex items-center space-x-2 mb-6">
-            <i class="fa-solid fa-circle-plus text-indigo-400 text-xl"></i>
-            <h2 class="text-lg font-semibold text-white">Publicar Nueva Vacante</h2>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-gray-100 min-h-screen">
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-slate-800 rounded-lg p-8 text-center">
+            <i class="fas fa-spinner fa-spin text-blue-500 text-4xl mb-4"></i>
+            <p class="text-gray-300">Cargando...</p>
         </div>
+    </div>
 
-        <form id="vacancyForm" class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Título de la Vacante</label>
-                <input type="text" id="title" required placeholder="Ej. Senior Java Developer"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Área / Categoría</label>
-                <input type="text" id="categoryArea" required placeholder="Ej. Tecnología / Backend"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Modalidad</label>
-                    <select id="workModality" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition">
-                        <option value="REMOTE">Remoto</option>
-                        <option value="HYBRID">Híbrido</option>
-                        <option value="ONSITE">Presencial</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Salario (USD)</label>
-                    <input type="number" id="salary" required placeholder="Ej. 3500"
-                           class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
-                </div>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Descripción de Funciones</label>
-                <textarea id="description" rows="4" required placeholder="Requisitos, tecnologías del stack y beneficios..."
-                          class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition resize-none"></textarea>
+    <!-- Authentication Modal -->
+    <div id="authModal" class="modal-visible fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-slate-800 rounded-lg shadow-2xl w-full max-w-md mx-4 fade-in border border-slate-700">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-400 px-6 py-8 text-center rounded-t-lg">
+                <i class="fas fa-briefcase text-white text-4xl mb-3"></i>
+                <h1 class="text-2xl font-bold text-white">TalentBoard</h1>
+                <p class="text-blue-100 text-sm mt-1">Gestión Inteligente de Talentos</p>
             </div>
 
-            <input type="hidden" id="responsibleUserId" value="1">
-
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-indigo-600/20 transition duration-200">
-                <i class="fa-solid fa-paper-plane mr-2"></i> Publicar Oferta
-            </button>
-        </form>
-    </section>
-
-    <section class="lg:col-span-2 space-y-6">
-        <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-briefcase text-cyan-400 text-xl"></i>
-                <h2 class="text-lg font-semibold text-white">Vacantes Disponibles (Server-Side Rendered)</h2>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-            <div th:each="vacancy : ${vacancies}"
-                 class="bg-slate-800 p-5 rounded-2xl border border-slate-700/70 hover:border-indigo-500/50 transition-all duration-300 shadow-md flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-start mb-3">
-                            <span th:text="${vacancy.status}"
-                                  th:classappend="${vacancy.status.name() == 'OPEN'} ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'"
-                                  class="text-xs font-bold tracking-wide uppercase px-2.5 py-1 rounded-full">
-                                STATUS
-                            </span>
-                        <span th:text="'$' + ${#numbers.formatDecimal(vacancy.salary, 0, 'COMMA', 0, 'POINT')} + '/mo'"
-                              class="text-sm font-semibold text-cyan-400">$0/mo</span>
+            <div class="p-8">
+                <div id="loginForm" class="space-y-4">
+                    <h2 class="text-xl font-bold text-white mb-6 text-center">Iniciar Sesión</h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Usuario</label>
+                        <input type="text" id="loginUsername" placeholder="Ingresa tu usuario" class="form-input">
                     </div>
-                    <h3 th:text="${vacancy.title}" class="text-base font-bold text-white mb-1">Vacancy Title</h3>
-                    <p class="text-xs text-indigo-300 font-medium mb-3">
-                        <i class="fa-solid fa-folder-open mr-1"></i> <span th:text="${vacancy.categoryArea}">Area</span>
-                    </p>
-                    <p th:text="${vacancy.description}" class="text-slate-400 text-xs line-clamp-3 mb-4">Description text...</p>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="Ingresa tu contraseña" class="form-input">
+                    </div>
+                    <div id="loginError" class="hidden bg-red-900 text-red-200 p-3 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="loginErrorMsg"></span>
+                    </div>
+                    <button onclick="handleLogin()" class="btn-primary w-full">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Acceder
+                    </button>
+                    <div class="text-center">
+                        <p class="text-gray-400 text-sm">¿No tienes cuenta?
+                            <button onclick="switchAuthForm('register')" class="text-blue-400 hover:text-blue-300 font-semibold">Regístrate aquí</button>
+                        </p>
+                    </div>
                 </div>
 
-                <div class="border-t border-slate-700/60 pt-3 mt-2 flex justify-between items-center text-slate-500 text-[11px]">
-                    <span><i class="fa-solid fa-location-dot mr-1"></i> <span th:text="${vacancy.workModality}">Modality</span></span>
-                    <span><i class="fa-solid fa-calendar mr-1"></i> <span th:text="${vacancy.publicationDate}">Date</span></span>
+                <div id="registerForm" class="hidden space-y-4">
+                    <h2 class="text-xl font-bold text-white mb-6 text-center">Crear Cuenta</h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Usuario</label>
+                        <input type="text" id="registerUsername" placeholder="Elige un usuario" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                        <input type="email" id="registerEmail" placeholder="tu@email.com" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Contraseña</label>
+                        <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Rol</label>
+                        <select id="registerRole" class="form-input">
+                            <option value="CANDIDATE">Candidato</option>
+                            <option value="RECRUITER">Reclutador</option>
+                            <option value="ADMIN">Administrador</option>
+                        </select>
+                    </div>
+                    <div id="registerError" class="hidden bg-red-900 text-red-200 p-3 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="registerErrorMsg"></span>
+                    </div>
+                    <button onclick="handleRegister()" class="btn-primary w-full">
+                        <i class="fas fa-user-plus mr-2"></i>Registrarse
+                    </button>
+                    <div class="text-center">
+                        <p class="text-gray-400 text-sm">¿Ya tienes cuenta?
+                            <button onclick="switchAuthForm('login')" class="text-blue-400 hover:text-blue-300 font-semibold">Inicia sesión</button>
+                        </p>
+                    </div>
                 </div>
             </div>
-
-            <div th:if="${#lists.isEmpty(vacancies)}"
-                 class="col-span-full bg-slate-800/40 border border-dashed border-slate-700 p-8 rounded-xl text-center text-slate-400">
-                No hay vacantes creadas aún en el sistema.
-            </div>
-
         </div>
-    </section>
-</main>
+    </div>
 
-<script>
-    document.getElementById('vacancyForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden min-h-screen flex flex-col">
+        <nav class="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-2">
+                            <i class="fas fa-briefcase text-white text-xl"></i>
+                        </div>
+                        <h1 class="text-2xl font-bold text-white hidden sm:block">TalentBoard</h1>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right hidden sm:block">
+                            <p class="text-sm text-gray-300" id="userDisplay">Usuario</p>
+                            <p id="userRoleDisplay" class="text-xs"></p>
+                        </div>
+                        <button onclick="handleLogout()" class="btn-danger text-sm flex items-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span class="hidden sm:inline">Salir</span>
+                        </button>
+                    </div>
+                </div>
 
-        const payload = {
-            title: document.getElementById('title').value,
-            description: document.getElementById('description').value,
-            categoryArea: document.getElementById('categoryArea').value,
-            workModality: document.getElementById('workModality').value,
-            salary: parseFloat(document.getElementById('salary').value),
-            responsibleUserId: parseInt(document.getElementById('responsibleUserId').value)
+                <div class="flex gap-1 border-b border-slate-700">
+                    <button onclick="switchTab('vacancies')" id="vacanciesTab" class="px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600">
+                        <i class="fas fa-briefcase mr-2"></i>Vacantes
+                    </button>
+                    <button onclick="switchTab('applications')" id="applicationsTab" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-file-alt mr-2"></i>Postulaciones
+                    </button>
+                    <button onclick="switchTab('interviews')" id="interviewsTab" class="px-4 py-2 font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-calendar-alt mr-2"></i>Entrevistas
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Vacancies Tab -->
+            <div id="vacanciesContent" class="space-y-6">
+                <div id="vacancyFormContainer" class="hidden bg-slate-800 border border-slate-700 rounded-lg p-6 shadow-lg">
+                    <h2 id="vacancyFormTitle" class="text-xl font-bold text-white mb-4"><i class="fas fa-plus-circle text-blue-400 mr-2"></i>Crear Vacante</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Título</label>
+                            <input type="text" id="vacancyTitle" placeholder="Desarrollador Senior" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Salario (USD)</label>
+                            <input type="number" id="vacancySalary" placeholder="50000" class="form-input" min="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Categoría</label>
+                            <input type="text" id="vacancyCategory" placeholder="Tecnología" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Modalidad</label>
+                            <select id="vacancyModality" class="form-input">
+                                <option value="">-- Selecciona --</option>
+                                <option value="REMOTO">Remoto</option>
+                                <option value="PRESENCIAL">Presencial</option>
+                                <option value="HIBRIDO">Híbrido</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Descripción</label>
+                            <textarea id="vacancyDescription" placeholder="Requisitos..." class="form-input h-24"></textarea>
+                        </div>
+                    </div>
+                    <div id="vacancyFormError" class="hidden mt-4 bg-red-900 text-red-200 p-3 rounded-lg text-sm">
+                        <span id="vacancyFormErrorMsg"></span>
+                    </div>
+                    <div class="mt-4 flex gap-2 flex-wrap">
+                        <button id="vacancySubmitButton" onclick="handleCreateVacancy()" class="btn-primary">Guardar</button>
+                        <button id="vacancyCancelEditButton" onclick="resetVacancyForm()" class="hidden px-4 py-2 bg-slate-600 text-white rounded-lg">Cancelar edición</button>
+                        <button onclick="resetVacancyForm()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg">Limpiar</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 id="vacanciesSectionTitle" class="text-xl font-bold text-white mb-4"><i class="fas fa-list text-blue-400 mr-2"></i>Vacantes disponibles</h2>
+                    <div id="vacanciesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    <div id="vacanciesEmpty" class="text-center py-12 bg-slate-800 rounded-lg border border-slate-700">
+                        <p class="text-gray-400">No hay vacantes disponibles</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Applications Tab -->
+            <div id="applicationsContent" class="hidden space-y-6">
+                <h2 id="applicationsSectionTitle" class="text-xl font-bold text-white"><i class="fas fa-file-alt text-blue-400 mr-2"></i>Postulaciones</h2>
+                <div id="applicationsFiltersCard" class="bg-slate-800 border border-slate-700 rounded-lg p-4 shadow-lg">
+                    <div class="flex flex-col md:flex-row gap-4 items-end">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Buscar</label>
+                            <input type="text" id="applicationsSearch" placeholder="Por candidato o vacante..." class="form-input">
+                        </div>
+                        <div class="w-full md:w-48">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Filtrar</label>
+                            <select id="applicationsStatusFilter" class="form-input">
+                                <option value="">-- Todos --</option>
+                                <option value="APPLIED">Aplicado</option>
+                                <option value="IN_REVIEW">En Revisión</option>
+                                <option value="INTERVIEW_STAGE">Entrevista</option>
+                                <option value="ACCEPTED">Aceptado</option>
+                                <option value="REJECTED">Rechazado</option>
+                            </select>
+                        </div>
+                        <button onclick="loadApplications()" class="btn-primary">Filtrar</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">ID</th>
+                                    <th id="applicationsCandidateHeader" class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Candidato</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Vacante</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Fecha</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Estado</th>
+                                    <th id="applicationsActionsHeader" class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="applicationsTableBody" class="divide-y divide-slate-700"></tbody>
+                        </table>
+                    </div>
+                    <div id="applicationsEmpty" class="text-center py-12 text-gray-400">
+                        <p>No hay postulaciones</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interviews Tab -->
+            <div id="interviewsContent" class="hidden space-y-6">
+                <h2 id="interviewsSectionTitle" class="text-xl font-bold text-white"><i class="fas fa-calendar-alt text-blue-400 mr-2"></i>Entrevistas</h2>
+                <div id="interviewFormContainer" class="hidden bg-slate-800 border border-slate-700 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-plus-circle text-blue-400 mr-2"></i>Programar Entrevista</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">ID Postulación</label>
+                            <input type="number" id="interviewApplicationId" placeholder="ID" class="form-input" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Fecha</label>
+                            <input type="date" id="interviewDate" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Hora</label>
+                            <input type="time" id="interviewTime" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Tipo</label>
+                            <select id="interviewType" class="form-input">
+                                <option value="">-- Selecciona --</option>
+                                <option value="TECNICA">Técnica</option>
+                                <option value="CONDUCTUAL">Conductual</option>
+                                <option value="GENERAL">General</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Entrevistador</label>
+                            <input type="text" id="interviewInterviewer" placeholder="Nombre" class="form-input">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Notas</label>
+                            <textarea id="interviewNotes" placeholder="Notas..." class="form-input h-20"></textarea>
+                        </div>
+                    </div>
+                    <div id="interviewFormError" class="hidden mt-4 bg-red-900 text-red-200 p-3 rounded-lg text-sm">
+                        <span id="interviewFormErrorMsg"></span>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="handleCreateInterview()" class="btn-primary">Guardar</button>
+                        <button onclick="resetInterviewForm()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg">Limpiar</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden shadow-lg">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">App ID</th>
+                                    <th id="interviewsCandidateHeader" class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Candidato</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Vacante</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Fecha-Hora</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Tipo</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Entrevistador</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Resultado</th>
+                                    <th class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Observaciones</th>
+                                    <th id="interviewsActionsHeader" class="px-6 py-3 text-left text-sm font-semibold text-gray-200">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="interviewsTableBody" class="divide-y divide-slate-700"></tbody>
+                        </table>
+                    </div>
+                    <div id="interviewsEmpty" class="text-center py-12 text-gray-400">
+                        <p>No hay entrevistas programadas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toastMessage" class="hidden fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-semibold shadow-lg z-50 flex items-center gap-2 max-w-sm">
+        <i id="toastIcon" class="fas fa-check-circle"></i>
+        <span id="toastText"></span>
+    </div>
+
+    <div id="interviewResultModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-slate-800 rounded-lg shadow-2xl w-full max-w-lg mx-4 border border-slate-700 p-6">
+            <h3 id="interviewResultModalTitle" class="text-lg font-bold text-white">Actualizar resultado</h3>
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Resultado</label>
+                    <input type="text" id="interviewResultValue" placeholder="APROBADO, RECHAZADO, REPROGRAMADO..." class="form-input">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Observaciones</label>
+                    <textarea id="interviewResultNotes" placeholder="Comentarios del proceso..." class="form-input h-24"></textarea>
+                </div>
+            </div>
+            <div class="flex gap-2 justify-end mt-6">
+                <button onclick="closeInterviewResultModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg">Cancelar</button>
+                <button onclick="saveInterviewResult()" class="btn-primary">Guardar resultado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-slate-800 rounded-lg shadow-2xl w-full max-w-sm mx-4 border border-slate-700 p-6">
+            <h3 id="confirmTitle" class="text-lg font-bold text-white">Confirmación</h3>
+            <p id="confirmMessage" class="text-gray-300 text-sm mt-2"></p>
+            <div class="flex gap-2 justify-end mt-6">
+                <button onclick="closeConfirmationModal()" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg">Cancelar</button>
+                <button id="confirmButton" onclick="executeConfirmation()" class="btn-danger">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentUsername = null;
+        let currentRole = null;
+        let currentUserId = null;
+        let API_BASE_URL = '/api';
+        let vacanciesCache = [];
+        let applicationsCache = [];
+        let interviewsCache = [];
+        let confirmationHandler = null;
+        let vacancyFormMode = 'create';
+        let editingVacancyId = null;
+        let editingInterviewId = null;
+        const ROLE_UI_CONFIG = {
+            ADMIN: {
+                vacanciesTitle: 'Gestión de vacantes',
+                applicationsTitle: 'Todas las postulaciones',
+                interviewsTitle: 'Todas las entrevistas'
+            },
+            RECRUITER: {
+                vacanciesTitle: 'Gestión de vacantes',
+                applicationsTitle: 'Todas las postulaciones',
+                interviewsTitle: 'Todas las entrevistas'
+            },
+            CANDIDATE: {
+                vacanciesTitle: 'Vacantes disponibles',
+                applicationsTitle: 'Mis postulaciones',
+                interviewsTitle: 'Mis entrevistas'
+            }
         };
 
-        try {
-            const response = await fetch('/api/vacancies', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedToken = localStorage.getItem('token');
+            if (savedToken) {
+                currentToken = savedToken;
+                currentUsername = localStorage.getItem('username');
+                currentRole = normalizeRole(localStorage.getItem('role'));
+                currentUserId = localStorage.getItem('userId');
+                initializeDashboard();
+            }
+
+            const searchInput = document.getElementById('applicationsSearch');
+            const filterSelect = document.getElementById('applicationsStatusFilter');
+            if (searchInput) searchInput.addEventListener('input', renderApplications);
+            if (filterSelect) filterSelect.addEventListener('change', renderApplications);
+        });
+
+        async function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                showLoginError('Por favor completa todos los campos');
+                return;
+            }
+
+            showLoader(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || errorData.message || Object.values(errorData)[0] || 'Error en la autenticación');
+                }
+
+                const data = await response.json();
+                currentToken = data.token;
+                currentUsername = username;
+                currentRole = normalizeRole(data.role || 'CANDIDATE');
+                currentUserId = data.userId || null;
+
+                localStorage.setItem('token', currentToken);
+                localStorage.setItem('username', currentUsername);
+                localStorage.setItem('role', currentRole);
+                if (currentUserId) localStorage.setItem('userId', currentUserId);
+
+                showToast('¡Inicio de sesión exitoso!', 'success');
+                initializeDashboard();
+            } catch (error) {
+                showLoginError(error.message);
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const role = document.getElementById('registerRole').value;
+
+            if (!username || !email || !password) {
+                showRegisterError('Por favor completa todos los campos');
+                return;
+            }
+
+            if (password.length < 6) {
+                showRegisterError('Mínimo 6 caracteres');
+                return;
+            }
+
+            showLoader(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password, role })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || errorData.message || Object.values(errorData)[0] || 'Error en el registro');
+                }
+
+                const data = await response.json();
+                currentToken = data.token;
+                currentUsername = data.username || username;
+                currentRole = normalizeRole(data.role || role);
+                currentUserId = data.userId || null;
+
+                localStorage.setItem('token', currentToken);
+                localStorage.setItem('username', currentUsername);
+                localStorage.setItem('role', currentRole);
+                if (currentUserId) localStorage.setItem('userId', currentUserId);
+
+                showToast('¡Registro exitoso!', 'success');
+                initializeDashboard();
+            } catch (error) {
+                showRegisterError(error.message);
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function switchAuthForm(form) {
+            document.getElementById('loginForm').classList.toggle('hidden', form !== 'login');
+            document.getElementById('registerForm').classList.toggle('hidden', form !== 'register');
+            clearAuthErrors();
+        }
+
+        function clearAuthErrors() {
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+        }
+
+        function showLoginError(message) {
+            document.getElementById('loginErrorMsg').textContent = message;
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+
+        function showRegisterError(message) {
+            document.getElementById('registerErrorMsg').textContent = message;
+            document.getElementById('registerError').classList.remove('hidden');
+        }
+
+        function handleLogout() {
+            showConfirmation('Cerrar Sesión', '¿Seguro que deseas cerrar sesión?', () => {
+                localStorage.clear();
+                currentToken = null;
+                currentUsername = null;
+                currentRole = null;
+                currentUserId = null;
+                
+                document.getElementById('dashboard').classList.add('hidden');
+                document.getElementById('authModal').classList.remove('hidden');
+                switchAuthForm('login');
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                showToast('Sesión cerrada', 'success');
+            });
+        }
+
+        function initializeDashboard() {
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            updateUserDisplay();
+            configureUIByRole();
+            switchTab('vacancies');
+        }
+
+        function normalizeRole(role) {
+            return (role || '').replace('ROLE_', '');
+        }
+
+        function isRecruiterOrAdmin() {
+            return currentRole === 'RECRUITER' || currentRole === 'ADMIN';
+        }
+
+        function isCandidate() {
+            return currentRole === 'CANDIDATE';
+        }
+
+        function getRoleUiConfig() {
+            return ROLE_UI_CONFIG[currentRole] || ROLE_UI_CONFIG.CANDIDATE;
+        }
+
+        function updateUserDisplay() {
+            const roleMap = { 'ADMIN': 'ADMINISTRADOR', 'RECRUITER': 'RECLUTADOR', 'CANDIDATE': 'CANDIDATO' };
+            document.getElementById('userDisplay').textContent = currentUsername || 'Usuario';
+            document.getElementById('userRoleDisplay').textContent = roleMap[currentRole] || '';
+        }
+
+        function configureUIByRole() {
+            const uiConfig = getRoleUiConfig();
+            const privilegedUser = isRecruiterOrAdmin();
+            document.getElementById('vacancyFormContainer').classList.toggle('hidden', !privilegedUser);
+            document.getElementById('interviewFormContainer').classList.toggle('hidden', !privilegedUser);
+            document.getElementById('applicationsActionsHeader').classList.toggle('hidden', !privilegedUser);
+            document.getElementById('applicationsCandidateHeader').classList.toggle('hidden', isCandidate());
+            document.getElementById('interviewsCandidateHeader').classList.toggle('hidden', isCandidate());
+            document.getElementById('interviewsActionsHeader').classList.toggle('hidden', !privilegedUser);
+            document.getElementById('vacanciesSectionTitle').innerHTML = `<i class="fas fa-list text-blue-400 mr-2"></i>${uiConfig.vacanciesTitle}`;
+            document.getElementById('applicationsSectionTitle').innerHTML = `<i class="fas fa-file-alt text-blue-400 mr-2"></i>${uiConfig.applicationsTitle}`;
+            document.getElementById('interviewsSectionTitle').innerHTML = `<i class="fas fa-calendar-alt text-blue-400 mr-2"></i>${uiConfig.interviewsTitle}`;
+            document.getElementById('applicationsSearch').placeholder = isCandidate() ? 'Por vacante...' : 'Por candidato o vacante...';
+            document.querySelector('#vacanciesEmpty p').textContent = isCandidate() ? 'No hay vacantes disponibles' : 'No hay vacantes registradas';
+            document.querySelector('#applicationsEmpty p').textContent = isCandidate() ? 'No tienes postulaciones registradas' : 'No hay postulaciones';
+            document.querySelector('#interviewsEmpty p').textContent = isCandidate() ? 'No tienes entrevistas programadas' : 'No hay entrevistas programadas';
+            document.getElementById('interviewInterviewer').value = currentUsername || '';
+            document.getElementById('interviewInterviewer').setAttribute('readonly', 'readonly');
+        }
+
+        function getApplicationsEndpoint() {
+            return isCandidate() && currentUserId
+                ? `${API_BASE_URL}/applications/candidate/${currentUserId}`
+                : `${API_BASE_URL}/applications`;
+        }
+
+        function getInterviewsEndpoint() {
+            return isCandidate() && currentUserId
+                ? `${API_BASE_URL}/interviews/candidate/${currentUserId}`
+                : `${API_BASE_URL}/interviews`;
+        }
+
+        function getVisibleVacancies() {
+            return isCandidate()
+                ? vacanciesCache.filter(vacancy => vacancy.status === 'OPEN')
+                : vacanciesCache;
+        }
+
+        function updateVacancyFormUI() {
+            const editing = vacancyFormMode === 'edit' && editingVacancyId !== null;
+            document.getElementById('vacancyFormTitle').innerHTML = editing
+                ? `<i class="fas fa-pen text-amber-400 mr-2"></i>Editar Vacante`
+                : `<i class="fas fa-plus-circle text-blue-400 mr-2"></i>Crear Vacante`;
+            document.getElementById('vacancySubmitButton').textContent = editing ? 'Actualizar' : 'Guardar';
+            document.getElementById('vacancyCancelEditButton').classList.toggle('hidden', !editing);
+        }
+
+        function startVacancyEdit(vacancyId) {
+            const vacancy = vacanciesCache.find(item => item.id === vacancyId);
+            if (!vacancy) return;
+
+            vacancyFormMode = 'edit';
+            editingVacancyId = vacancyId;
+            document.getElementById('vacancyTitle').value = vacancy.title || '';
+            document.getElementById('vacancyDescription').value = vacancy.description || '';
+            document.getElementById('vacancyCategory').value = vacancy.categoryArea || '';
+            document.getElementById('vacancyModality').value = vacancy.workModality || '';
+            document.getElementById('vacancySalary').value = vacancy.salary || '';
+            document.getElementById('vacancyFormError').classList.add('hidden');
+            updateVacancyFormUI();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function switchTab(tabName) {
+            document.getElementById('vacanciesContent').classList.add('hidden');
+            document.getElementById('applicationsContent').classList.add('hidden');
+            document.getElementById('interviewsContent').classList.add('hidden');
+
+            document.getElementById('vacanciesTab').className = 'px-4 py-2 font-medium border-b-2 border-transparent text-gray-600';
+            document.getElementById('applicationsTab').className = 'px-4 py-2 font-medium border-b-2 border-transparent text-gray-600';
+            document.getElementById('interviewsTab').className = 'px-4 py-2 font-medium border-b-2 border-transparent text-gray-600';
+
+            if (tabName === 'vacancies') {
+                document.getElementById('vacanciesContent').classList.remove('hidden');
+                document.getElementById('vacanciesTab').className = 'px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600';
+                loadVacancies();
+            } else if (tabName === 'applications') {
+                document.getElementById('applicationsContent').classList.remove('hidden');
+                document.getElementById('applicationsTab').className = 'px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600';
+                loadApplications();
+            } else if (tabName === 'interviews') {
+                document.getElementById('interviewsContent').classList.remove('hidden');
+                document.getElementById('interviewsTab').className = 'px-4 py-2 font-medium border-b-2 border-blue-500 text-blue-600';
+                loadInterviews();
+            }
+        }
+
+        async function loadVacancies() {
+            showLoader(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/vacancies`, {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, 'Error cargando vacantes'));
+                vacanciesCache = await response.json();
+                renderVacancies();
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function renderVacancies() {
+            const grid = document.getElementById('vacanciesGrid');
+            const empty = document.getElementById('vacanciesEmpty');
+            const visibleVacancies = getVisibleVacancies();
+
+            if (!visibleVacancies || visibleVacancies.length === 0) {
+                grid.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            grid.innerHTML = visibleVacancies.map(vacancy => `
+                <div class="bg-slate-800 border border-slate-700 rounded-lg p-5 hover:border-blue-500 transition">
+                    <div class="flex items-start justify-between mb-3">
+                        <h3 class="text-lg font-bold text-white flex-1">${vacancy.title}</h3>
+                        <div>${getStatusBadge(vacancy.status)}</div>
+                    </div>
+                    <div class="space-y-2 mb-4 text-sm">
+                        <p class="text-gray-300"><i class="fas fa-tag text-blue-400 mr-2"></i>${vacancy.categoryArea || 'N/A'}</p>
+                        <p class="text-gray-300"><i class="fas fa-map-marker-alt text-green-400 mr-2"></i>${vacancy.workModality || 'N/A'}</p>
+                        <p class="text-gray-300"><i class="fas fa-user-tie text-amber-400 mr-2"></i>${vacancy.responsibleUser?.username || 'N/A'}</p>
+                        <p class="text-gray-400"><i class="fas fa-calendar-day text-cyan-400 mr-2"></i>${vacancy.publicationDate ? new Date(`${vacancy.publicationDate}T00:00:00`).toLocaleDateString('es-ES') : 'Sin fecha'}</p>
+                        <p class="text-green-400 font-semibold">$${vacancy.salary ? vacancy.salary.toLocaleString() : '0'}</p>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-4 line-clamp-2">${vacancy.description || 'Sin descripción'}</p>
+                    <div class="flex gap-2 flex-wrap">
+                        ${isRecruiterOrAdmin() ? `
+                            <button onclick="startVacancyEdit(${vacancy.id})" class="px-4 py-2 bg-slate-700 text-white rounded-lg flex-1 text-sm">
+                                <i class="fas fa-pen mr-1"></i>Editar
+                            </button>
+                            <button onclick="changeVacancyStatus(${vacancy.id}, '${vacancy.status === 'OPEN' ? 'CLOSED' : 'OPEN'}')" class="btn-primary flex-1 text-sm">
+                                <i class="fas ${vacancy.status === 'OPEN' ? 'fa-lock' : 'fa-lock-open'} mr-1"></i>${vacancy.status === 'OPEN' ? 'Cerrar' : 'Reabrir'}
+                            </button>
+                        ` : ''}
+                        ${currentRole === 'CANDIDATE' && vacancy.status === 'OPEN' ? `
+                            <button onclick="applyToVacancy(${vacancy.id})" class="btn-primary flex-1 text-sm">
+                                <i class="fas fa-paper-plane mr-1"></i>Aplicar
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function handleCreateVacancy() {
+            const title = document.getElementById('vacancyTitle').value.trim();
+            const description = document.getElementById('vacancyDescription').value.trim();
+            const categoryArea = document.getElementById('vacancyCategory').value.trim();
+            const workModality = document.getElementById('vacancyModality').value;
+            const salary = parseFloat(document.getElementById('vacancySalary').value);
+            const isEditing = vacancyFormMode === 'edit' && editingVacancyId !== null;
+
+            if (!title || !description || !categoryArea || !workModality || isNaN(salary) || salary <= 0) {
+                showVacancyFormError('Completa todos los campos');
+                return;
+            }
+
+            showLoader(true);
+
+            try {
+                const response = await fetch(isEditing ? `${API_BASE_URL}/vacancies/${editingVacancyId}` : `${API_BASE_URL}/vacancies`, {
+                    method: isEditing ? 'PUT' : 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, description, categoryArea, workModality, salary })
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, isEditing ? 'Error actualizando vacante' : 'Error creando vacante'));
+
+                const savedVacancy = await response.json();
+                if (isEditing) {
+                    const vacancyIndex = vacanciesCache.findIndex(item => item.id === editingVacancyId);
+                    if (vacancyIndex > -1) vacanciesCache[vacancyIndex] = savedVacancy;
+                } else {
+                    vacanciesCache.unshift(savedVacancy);
+                }
+                renderVacancies();
+                resetVacancyForm();
+                showToast(isEditing ? 'Vacante actualizada exitosamente' : 'Vacante creada exitosamente', 'success');
+            } catch (error) {
+                showVacancyFormError(error.message);
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function changeVacancyStatus(vacancyId, nextStatus) {
+            const vacancy = vacanciesCache.find(v => v.id === vacancyId);
+            if (!vacancy || vacancy.status === nextStatus) return;
+
+            const actionLabel = nextStatus === 'CLOSED' ? 'cerrar' : 'reabrir';
+            showConfirmation('Actualizar vacante', `¿Deseas ${actionLabel} la vacante "${vacancy.title}"?`, async () => {
+                showLoader(true);
+                try {
+                    const response = await fetch(`${API_BASE_URL}/vacancies/${vacancyId}/status?status=${encodeURIComponent(nextStatus)}`, {
+                        method: 'PATCH',
+                        headers: { 'Authorization': `Bearer ${currentToken}` }
+                    });
+
+                    if (!response.ok) throw new Error(await getErrorMessage(response, 'Error actualizando vacante'));
+
+                    const updatedVacancy = await response.json();
+                    const vacancyIndex = vacanciesCache.findIndex(item => item.id === vacancyId);
+                    if (vacancyIndex > -1) {
+                        vacanciesCache[vacancyIndex] = updatedVacancy;
+                        renderVacancies();
+                    }
+
+                    showToast('Vacante actualizada', 'success');
+                } catch (error) {
+                    showToast(error.message, 'error');
+                } finally {
+                    showLoader(false);
+                }
+            });
+        }
+
+        function resetVacancyForm() {
+            vacancyFormMode = 'create';
+            editingVacancyId = null;
+            document.getElementById('vacancyTitle').value = '';
+            document.getElementById('vacancyDescription').value = '';
+            document.getElementById('vacancyCategory').value = '';
+            document.getElementById('vacancyModality').value = '';
+            document.getElementById('vacancySalary').value = '';
+            document.getElementById('vacancyFormError').classList.add('hidden');
+            updateVacancyFormUI();
+        }
+
+        function showVacancyFormError(message) {
+            document.getElementById('vacancyFormErrorMsg').textContent = message;
+            document.getElementById('vacancyFormError').classList.remove('hidden');
+        }
+
+        async function applyToVacancy(vacancyId) {
+            const vacancy = vacanciesCache.find(v => v.id === vacancyId);
+            if (!vacancy) return;
+
+            if (vacancy.status !== 'OPEN') {
+                showToast('No puedes aplicar a una vacante cerrada', 'error');
+                return;
+            }
+
+            const alreadyApplied = applicationsCache.some(a => 
+                a.vacancy?.id === vacancyId && a.candidate?.username === currentUsername
+            );
+
+            if (alreadyApplied) {
+                showToast('Ya has aplicado a esta vacante', 'error');
+                return;
+            }
+
+            showConfirmation('Confirmar Aplicación', `¿Deseas aplicar a "${vacancy.title}"?`, async () => {
+                showLoader(true);
+                try {
+                    const response = await fetch(`${API_BASE_URL}/applications`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${currentToken}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ vacancyId })
+                    });
+
+                    if (!response.ok) throw new Error(await getErrorMessage(response, 'Error en la aplicación'));
+                    applicationsCache.unshift(await response.json());
+                    showToast('¡Aplicación enviada!', 'success');
+                } catch (error) {
+                    showToast(error.message, 'error');
+                } finally {
+                    showLoader(false);
+                }
+            });
+        }
+
+        async function loadApplications() {
+            showLoader(true);
+            try {
+                const response = await fetch(getApplicationsEndpoint(), {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, 'Error cargando postulaciones'));
+                applicationsCache = await response.json();
+                renderApplications();
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function renderApplications() {
+            const tbody = document.getElementById('applicationsTableBody');
+            const empty = document.getElementById('applicationsEmpty');
+
+            const searchTerm = document.getElementById('applicationsSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('applicationsStatusFilter').value;
+            const showActions = isRecruiterOrAdmin();
+            const showCandidateColumn = !isCandidate();
+
+            let filtered = applicationsCache.filter(app => {
+                const matchesSearch = !searchTerm || 
+                    (showCandidateColumn && app.candidate?.username?.toLowerCase().includes(searchTerm)) ||
+                    (app.vacancy?.title?.toLowerCase().includes(searchTerm));
+                const matchesStatus = !statusFilter || app.status === statusFilter;
+                return matchesSearch && matchesStatus;
             });
 
-            if (response.ok) {
-                // Al guardarse correctamente, recargamos la página para que Thymeleaf vuelva a compilar con la nueva vacante
-                window.location.reload();
-            } else {
-                alert('Error al guardar la vacante');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
             }
-        } catch (error) {
-            alert('No se pudo conectar al servidor.');
+
+            empty.classList.add('hidden');
+            tbody.innerHTML = filtered.map(app => `
+                <tr class="hover:bg-slate-700 transition-colors">
+                    <td class="px-6 py-4 text-sm text-gray-300">#${app.id}</td>
+                    ${showCandidateColumn ? `<td class="px-6 py-4 text-sm text-gray-300">${app.candidate?.username || 'N/A'}</td>` : ''}
+                    <td class="px-6 py-4 text-sm text-gray-300">${app.vacancy?.title || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${new Date(app.applicationDate).toLocaleDateString('es-ES')}</td>
+                    <td class="px-6 py-4 text-sm">${getStatusBadge(app.status)}</td>
+                    ${showActions ? `
+                    <td class="px-6 py-4 text-sm">
+                            <select onchange="updateApplicationStatus(${app.id}, this.value)" class="text-xs px-2 py-1 bg-slate-700 text-gray-300 rounded">
+                                <option value="">-- Cambiar --</option>
+                                <option value="IN_REVIEW">En Revisión</option>
+                                <option value="INTERVIEW_STAGE">Entrevista</option>
+                                <option value="ACCEPTED">Aceptado</option>
+                                <option value="REJECTED">Rechazado</option>
+                            </select>
+                    </td>
+                    ` : ''}
+                </tr>
+            `).join('');
         }
-    });
-</script>
+
+        async function updateApplicationStatus(appId, newStatus) {
+            if (!newStatus) return;
+
+            showLoader(true);
+            try {
+                const response = await fetch(`${API_BASE_URL}/applications/${appId}/status?status=${encodeURIComponent(newStatus)}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, 'Error actualizando'));
+                const updatedApp = await response.json();
+                const index = applicationsCache.findIndex(a => a.id === appId);
+                if (index > -1) applicationsCache[index] = updatedApp;
+
+                renderApplications();
+                showToast('Postulación actualizada', 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function loadInterviews() {
+            showLoader(true);
+            try {
+                const response = await fetch(getInterviewsEndpoint(), {
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, 'Error cargando entrevistas'));
+                interviewsCache = await response.json();
+                renderInterviews();
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function renderInterviews() {
+            const tbody = document.getElementById('interviewsTableBody');
+            const empty = document.getElementById('interviewsEmpty');
+            const showCandidateColumn = !isCandidate();
+            const showActions = isRecruiterOrAdmin();
+
+            if (!interviewsCache || interviewsCache.length === 0) {
+                tbody.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            tbody.innerHTML = interviewsCache.map(interview => `
+                <tr class="hover:bg-slate-700 transition-colors">
+                    <td class="px-6 py-4 text-sm text-gray-300">#${interview.applicationId}</td>
+                    ${showCandidateColumn ? `<td class="px-6 py-4 text-sm text-gray-300">${interview.candidateName || 'N/A'}</td>` : ''}
+                    <td class="px-6 py-4 text-sm text-gray-300">${interview.vacancyTitle || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${interview.date || ''} ${interview.time || ''}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${interview.interviewType || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${interview.interviewer?.username || 'N/A'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${interview.result || 'PENDING'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-300">${interview.notes || 'Sin observaciones'}</td>
+                    ${showActions ? `
+                    <td class="px-6 py-4 text-sm">
+                        <button onclick="openInterviewResultModal(${interview.id})" class="px-3 py-2 bg-slate-700 text-white rounded-lg text-xs whitespace-nowrap">
+                            <i class="fas fa-clipboard-check mr-1"></i>Resultado
+                        </button>
+                    </td>
+                    ` : ''}
+                </tr>
+            `).join('');
+        }
+
+        async function handleCreateInterview() {
+            const applicationId = parseInt(document.getElementById('interviewApplicationId').value);
+            const date = document.getElementById('interviewDate').value;
+            const time = document.getElementById('interviewTime').value;
+            const type = document.getElementById('interviewType').value;
+            const notes = document.getElementById('interviewNotes').value.trim();
+
+            if (!applicationId || !date || !time || !type) {
+                showInterviewFormError('Completa todos los campos');
+                return;
+            }
+
+            const selectedDate = new Date(`${date}T00:00:00`);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate < today) {
+                showInterviewFormError('No puedes programar en fechas pasadas');
+                return;
+            }
+
+            showLoader(true);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/interviews`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ applicationId, date, time, interviewType: type, notes })
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, 'Error creando entrevista'));
+
+                const createdInterview = await response.json();
+                interviewsCache.unshift(createdInterview);
+                const relatedApplicationIndex = applicationsCache.findIndex(app => app.id === applicationId);
+                if (relatedApplicationIndex > -1) {
+                    applicationsCache[relatedApplicationIndex] = {
+                        ...applicationsCache[relatedApplicationIndex],
+                        status: 'INTERVIEW_STAGE'
+                    };
+                }
+                renderInterviews();
+                resetInterviewForm();
+                showToast('Entrevista programada', 'success');
+            } catch (error) {
+                showInterviewFormError(error.message);
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function resetInterviewForm() {
+            document.getElementById('interviewApplicationId').value = '';
+            document.getElementById('interviewDate').value = '';
+            document.getElementById('interviewTime').value = '';
+            document.getElementById('interviewType').value = '';
+            document.getElementById('interviewInterviewer').value = currentUsername || '';
+            document.getElementById('interviewNotes').value = '';
+            document.getElementById('interviewFormError').classList.add('hidden');
+        }
+
+        function showInterviewFormError(message) {
+            document.getElementById('interviewFormErrorMsg').textContent = message;
+            document.getElementById('interviewFormError').classList.remove('hidden');
+        }
+
+        function openInterviewResultModal(interviewId) {
+            const interview = interviewsCache.find(item => item.id === interviewId);
+            if (!interview) return;
+
+            editingInterviewId = interviewId;
+            document.getElementById('interviewResultModalTitle').textContent = `Actualizar resultado de entrevista #${interview.id}`;
+            document.getElementById('interviewResultValue').value = interview.result === 'PENDING' ? '' : (interview.result || '');
+            document.getElementById('interviewResultNotes').value = interview.notes || '';
+            document.getElementById('interviewResultModal').classList.remove('hidden');
+            document.getElementById('interviewResultModal').classList.add('flex');
+        }
+
+        function closeInterviewResultModal() {
+            editingInterviewId = null;
+            document.getElementById('interviewResultValue').value = '';
+            document.getElementById('interviewResultNotes').value = '';
+            document.getElementById('interviewResultModal').classList.add('hidden');
+            document.getElementById('interviewResultModal').classList.remove('flex');
+        }
+
+        async function saveInterviewResult() {
+            const result = document.getElementById('interviewResultValue').value.trim();
+            const notes = document.getElementById('interviewResultNotes').value.trim();
+
+            if (!editingInterviewId || !result) {
+                showToast('Debes indicar un resultado para la entrevista', 'error');
+                return;
+            }
+
+            showLoader(true);
+            try {
+                const query = new URLSearchParams({ result });
+                if (notes) query.set('notes', notes);
+
+                const response = await fetch(`${API_BASE_URL}/interviews/${editingInterviewId}/result?${query.toString()}`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${currentToken}` }
+                });
+
+                if (!response.ok) throw new Error(await getErrorMessage(response, 'Error actualizando resultado'));
+
+                const updatedInterview = await response.json();
+                const interviewIndex = interviewsCache.findIndex(item => item.id === editingInterviewId);
+                if (interviewIndex > -1) interviewsCache[interviewIndex] = updatedInterview;
+
+                renderInterviews();
+                closeInterviewResultModal();
+                showToast('Resultado de entrevista actualizado', 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        function getStatusBadge(status) {
+            const badges = {
+                'OPEN': '<span class="badge-open">🔓 Abierta</span>',
+                'CLOSED': '<span class="badge-closed">🔒 Cerrada</span>',
+                'APPLIED': '<span class="badge-applied">📤 Aplicado</span>',
+                'IN_REVIEW': '<span class="badge-in-review">⏳ En Revisión</span>',
+                'INTERVIEW_STAGE': '<span class="badge-interview">📹 Entrevista</span>',
+                'ACCEPTED': '<span class="badge-accepted">✅ Aceptado</span>',
+                'REJECTED': '<span class="badge-rejected">❌ Rechazado</span>'
+            };
+            return badges[status] || `<span>${status}</span>`;
+        }
+
+        function showLoader(show) {
+            document.getElementById('loadingSpinner').classList.toggle('hidden', !show);
+        }
+
+        async function getErrorMessage(response, fallbackMessage) {
+            try {
+                const errorData = await response.json();
+                if (errorData?.error) return errorData.error;
+
+                const firstError = Object.values(errorData || {})[0];
+                return typeof firstError === 'string' ? firstError : fallbackMessage;
+            } catch (error) {
+                return fallbackMessage;
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastMessage');
+            const icon = document.getElementById('toastIcon');
+            const text = document.getElementById('toastText');
+
+            text.textContent = message;
+            icon.className = type === 'success' 
+                ? 'fas fa-check-circle text-green-400' 
+                : 'fas fa-exclamation-circle text-red-400';
+
+            toast.className = `flex fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white font-semibold shadow-lg z-50 items-center gap-2 max-w-sm ${
+                type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            }`;
+
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        function showConfirmation(title, message, onConfirm) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            confirmationHandler = onConfirm;
+
+            document.getElementById('confirmationModal').classList.remove('hidden');
+            document.getElementById('confirmationModal').classList.add('flex');
+        }
+
+        function closeConfirmationModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            document.getElementById('confirmationModal').classList.remove('flex');
+            confirmationHandler = null;
+        }
+
+        function executeConfirmation() {
+            if (confirmationHandler) confirmationHandler();
+            closeConfirmationModal();
+        }
+    </script>
 </body>
 </html>

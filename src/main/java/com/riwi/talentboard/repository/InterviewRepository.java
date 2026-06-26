@@ -7,5 +7,7 @@ import java.util.List;
 
 @Repository
 public interface InterviewRepository extends JpaRepository<Interview, Long> {
+    List<Interview> findAllByOrderByDateAscTimeAsc();
     List<Interview> findByApplicationId(Long applicationId);
+    List<Interview> findByApplicationCandidateId(Long candidateId);
 }

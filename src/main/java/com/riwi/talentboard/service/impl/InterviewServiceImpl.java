@@ -5,6 +5,7 @@ import com.riwi.talentboard.dto.InterviewResponseDTO;
 import com.riwi.talentboard.dto.UserSimpleResponseDTO;
 import com.riwi.talentboard.entity.*;
 import com.riwi.talentboard.enums.ApplicationStatus;
+import com.riwi.talentboard.enums.Role;
 import com.riwi.talentboard.exception.BadRequestException;
 import com.riwi.talentboard.exception.ResourceNotFoundException;
 import com.riwi.talentboard.repository.ApplicationRepository;
@@ -12,6 +13,8 @@ import com.riwi.talentboard.repository.InterviewRepository;
 import com.riwi.talentboard.repository.UserRepository;
 import com.riwi.talentboard.service.InterviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -38,8 +41,10 @@ public class InterviewServiceImpl implements InterviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + request.getApplicationId()));
 
         // Validar que el entrevistador (Usuario Reclutador/Admin) exista
-        User interviewer = userRepository.findById(request.getInterviewerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Interviewer user not found with ID: " + request.getInterviewerId()));
+        User currentUser = getCurrentUser();
+        Long interviewerId = request.getInterviewerId() != null ? request.getInterviewerId() : currentUser.getId();
+        User interviewer = userRepository.findById(interviewerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Interviewer user not found with ID: " + interviewerId));
 
         // 4. Crear la entrevista
         Interview interview = new Interview();
@@ -60,8 +65,32 @@ public class InterviewServiceImpl implements InterviewService {
     }
 
     @Override
+    public List<InterviewResponseDTO> getAll() {
+        User currentUser = getCurrentUser();
+        List<Interview> interviews = currentUser.getRole() == Role.CANDIDATE
+                ? interviewRepository.findByApplicationCandidateId(currentUser.getId())
+                : interviewRepository.findAllByOrderByDateAscTimeAsc();
+
+        return interviews.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<InterviewResponseDTO> getByApplicationId(Long applicationId) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + applicationId));
+        ensureCandidateCanAccess(application.getCandidate().getId());
+
         return interviewRepository.findByApplicationId(applicationId).stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<InterviewResponseDTO> getByCandidateId(Long candidateId) {
+        ensureCandidateCanAccess(candidateId);
+        return interviewRepository.findByApplicationCandidateId(candidateId).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -70,6 +99,7 @@ public class InterviewServiceImpl implements InterviewService {
     public InterviewResponseDTO getById(Long id) {
         Interview interview = interviewRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Interview not found with ID: " + id));
+        ensureCandidateCanAccess(interview.getApplication().getCandidate().getId());
         return mapToResponseDTO(interview);
     }
 
@@ -108,5 +138,18 @@ public class InterviewServiceImpl implements InterviewService {
                 interview.getResult(),
                 interview.getNotes()
         );
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found."));
+    }
+
+    private void ensureCandidateCanAccess(Long candidateId) {
+        User currentUser = getCurrentUser();
+        if (currentUser.getRole() == Role.CANDIDATE && !currentUser.getId().equals(candidateId)) {
+            throw new AccessDeniedException("You can only access your own interviews.");
+        }
     }
 }

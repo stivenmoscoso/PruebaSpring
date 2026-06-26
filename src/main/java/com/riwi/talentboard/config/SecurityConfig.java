@@ -1,6 +1,5 @@
 package com.riwi.talentboard.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -30,22 +31,26 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Deshabilitado porque usamos JWT sin cookies
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos (Registro y Login)
+                        // Endpoints públicos (Thymeleaf, Estáticos, Auth y Swagger)
+                        .requestMatchers("/", "/css/**", "/js/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api-docs/**").permitAll()
 
-                        // REGLAS DE ROLES DE VACANTES
-                        .requestMatchers(HttpMethod.POST, "/api/vacancies/**").hasAnyRole("ADMIN", "RECRUITER")
-                        .requestMatchers(HttpMethod.PUT, "/api/vacancies/**").hasAnyRole("ADMIN", "RECRUITER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/vacancies/**").hasAnyRole("ADMIN", "RECRUITER")
-                        .requestMatchers(HttpMethod.GET, "/api/vacancies/**").authenticated() // Cualquiera logueado ve vacantes
+                        // REGLAS DE ROLES DE VACANTES (Unificado a Authority)
+                        .requestMatchers(HttpMethod.POST, "/api/vacancies", "/api/vacancies/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECRUITER")
+                        .requestMatchers(HttpMethod.PUT, "/api/vacancies/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECRUITER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/vacancies/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/vacancies", "/api/vacancies/**").authenticated()
 
-                        // ROLES DE POSTULACIONES
-                        .requestMatchers(HttpMethod.POST, "/api/applications/**").hasRole("CANDIDATE") // Solo postulantes
-                        .requestMatchers(HttpMethod.PATCH, "/api/applications/**").hasAnyRole("ADMIN", "RECRUITER") // Cambios de estado
-                        .requestMatchers(HttpMethod.GET, "/api/applications/candidate/**").authenticated()
+                        // ROLES DE POSTULACIONES (¡Excelente!)
+                        .requestMatchers(HttpMethod.POST, "/api/applications", "/api/applications/**").hasAuthority("ROLE_CANDIDATE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/applications/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications", "/api/applications/**").authenticated()
 
-                        // ROLES DE ENTREVISTAS
-                        .requestMatchers("/api/interviews/**").hasAnyRole("ADMIN", "RECRUITER") // Solo staff maneja agendas
+                        // ROLES DE ENTREVISTAS (Corregido para permitir creación/lectura)
+                        .requestMatchers(HttpMethod.POST, "/api/interviews", "/api/interviews/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECRUITER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/interviews/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/interviews", "/api/interviews/**").authenticated()
 
                         .anyRequest().authenticated()
                 )

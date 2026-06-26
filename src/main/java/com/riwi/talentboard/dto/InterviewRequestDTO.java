@@ -22,7 +22,6 @@ public class InterviewRequestDTO {
     @NotBlank(message = "Interview type is required (e.g., TECHNICAL, HR).")
     private String interviewType;
 
-    @NotNull(message = "Interviewer (User ID) is required.")
     private Long interviewerId;
 
     private String notes;

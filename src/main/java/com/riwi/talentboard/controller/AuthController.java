@@ -26,7 +26,7 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequestDTO request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new BadRequestException("Username is already taken.");
         }
@@ -40,8 +40,15 @@ public class AuthController {
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
 
-        userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully!");
+        User savedUser = userRepository.save(user);
+        String jwt = jwtService.generateToken(savedUser);
+
+        return ResponseEntity.ok(new AuthResponseDTO(
+                savedUser.getId(),
+                jwt,
+                savedUser.getUsername(),
+                savedUser.getRole().name()
+        ));
     }
 
     @PostMapping("/login")
@@ -57,9 +64,14 @@ public class AuthController {
         final UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
         final String jwt = jwtService.generateToken(userDetails);
 
-        // Extraemos el rol limpio para responder al cliente
-        String roleName = userDetails.getAuthorities().iterator().next().getAuthority();
+        User user = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new BadRequestException("User not found."));
 
-        return ResponseEntity.ok(new AuthResponseDTO(jwt, userDetails.getUsername(), roleName));
+        return ResponseEntity.ok(new AuthResponseDTO(
+                user.getId(),
+                jwt,
+                userDetails.getUsername(),
+                user.getRole().name()
+        ));
     }
 }

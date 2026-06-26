@@ -11,6 +11,7 @@ import com.riwi.talentboard.repository.UserRepository;
 import com.riwi.talentboard.repository.VacancyRepository;
 import com.riwi.talentboard.service.VacancyService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,8 +27,7 @@ public class VacancyServiceImpl implements VacancyService {
 
     @Override
     public VacancyResponseDTO create(VacancyRequestDTO request) {
-        User user = userRepository.findById(request.getResponsibleUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User responsible not found with ID: " + request.getResponsibleUserId()));
+        User user = resolveResponsibleUser(request.getResponsibleUserId(), getCurrentUser().getId());
 
         Vacancy vacancy = new Vacancy();
         vacancy.setTitle(request.getTitle());
@@ -62,8 +62,7 @@ public class VacancyServiceImpl implements VacancyService {
         Vacancy vacancy = vacancyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vacancy not found with ID: " + id));
 
-        User user = userRepository.findById(request.getResponsibleUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User responsible not found with ID: " + request.getResponsibleUserId()));
+        User user = resolveResponsibleUser(request.getResponsibleUserId(), vacancy.getResponsibleUser().getId());
 
         vacancy.setTitle(request.getTitle());
         vacancy.setDescription(request.getDescription());
@@ -106,5 +105,17 @@ public class VacancyServiceImpl implements VacancyService {
                 vacancy.getStatus(),
                 userDTO
         );
+    }
+
+    private User resolveResponsibleUser(Long responsibleUserId, Long fallbackUserId) {
+        Long resolvedUserId = responsibleUserId != null ? responsibleUserId : fallbackUserId;
+        return userRepository.findById(resolvedUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User responsible not found with ID: " + resolvedUserId));
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found."));
     }
 }

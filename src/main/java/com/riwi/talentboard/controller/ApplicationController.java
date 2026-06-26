@@ -26,6 +26,11 @@ public class ApplicationController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @GetMapping
+    public ResponseEntity<List<ApplicationResponseDTO>> getAllApplications() {
+        return ResponseEntity.ok(applicationService.getAll());
+    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponseDTO> getApplicationById(@PathVariable Long id) {

@@ -5,6 +5,7 @@ import com.riwi.talentboard.dto.ApplicationResponseDTO;
 import com.riwi.talentboard.dto.UserSimpleResponseDTO;
 import com.riwi.talentboard.dto.VacancySimpleResponseDTO;
 import com.riwi.talentboard.entity.*;
+import com.riwi.talentboard.enums.Role;
 import com.riwi.talentboard.enums.ApplicationStatus;
 import com.riwi.talentboard.enums.VacancyStatus;
 import com.riwi.talentboard.exception.BadRequestException;
@@ -14,6 +15,8 @@ import com.riwi.talentboard.repository.UserRepository;
 import com.riwi.talentboard.repository.VacancyRepository;
 import com.riwi.talentboard.service.ApplicationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,9 +33,11 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     public ApplicationResponseDTO apply(ApplicationRequestDTO request) {
+        User currentUser = getCurrentUser();
+        Long candidateId = currentUser.getRole() == Role.CANDIDATE ? currentUser.getId() : request.getCandidateId();
 
-        User candidate = userRepository.findById(request.getCandidateId())
-                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with ID: " + request.getCandidateId()));
+        User candidate = userRepository.findById(candidateId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with ID: " + candidateId));
 
         Vacancy vacancy = vacancyRepository.findById(request.getVacancyId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vacancy not found with ID: " + request.getVacancyId()));
@@ -43,7 +48,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
 
-        boolean alreadyApplied = applicationRepository.existsByCandidateIdAndVacancyId(request.getCandidateId(), request.getVacancyId());
+        boolean alreadyApplied = applicationRepository.existsByCandidateIdAndVacancyId(candidateId, request.getVacancyId());
         if (alreadyApplied) {
             throw new BadRequestException("Candidate has already applied to this vacancy.");
         }
@@ -61,15 +66,28 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
+    public List<ApplicationResponseDTO> getAll() {
+        User currentUser = getCurrentUser();
+        List<Application> applications = currentUser.getRole() == Role.CANDIDATE
+                ? applicationRepository.findByCandidateId(currentUser.getId())
+                : applicationRepository.findAll();
+
+        return applications.stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public ApplicationResponseDTO getById(Long id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + id));
+        ensureCandidateCanAccess(application.getCandidate().getId());
         return mapToResponseDTO(application);
     }
 
     @Override
     public List<ApplicationResponseDTO> getByCandidateId(Long candidateId) {
-        //Permitir consultar historial de postulaciones del candidato
+        ensureCandidateCanAccess(candidateId);
         return applicationRepository.findByCandidateId(candidateId).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
@@ -110,5 +128,18 @@ public class ApplicationServiceImpl implements ApplicationService {
                 application.getStatus(),
                 application.getComments()
         );
+    }
+
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found."));
+    }
+
+    private void ensureCandidateCanAccess(Long candidateId) {
+        User currentUser = getCurrentUser();
+        if (currentUser.getRole() == Role.CANDIDATE && !currentUser.getId().equals(candidateId)) {
+            throw new AccessDeniedException("You can only access your own applications.");
+        }
     }
 }
